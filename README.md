@@ -5,6 +5,8 @@
 ## 1. CNN Binary Classifier 與模型搭建
 
 在這個階段，我學習了如何使用 Keras 像接水管一樣，一層一層地搭建卷積神經網路（CNN）模型。我們建立了一個 Binary Classifier 來分辨大腦影像中是否含有腫瘤（Tumor vs. No Tumor），並處理了資料的載入、增強（Data Augmentation）與切分等前處理流程。
+
+兩次不同epoch訓練的表現
 ![alt text](image/plot-20epoch.jpg)
 ![alt text](image/plot-60epoch.jpg)
 ## 2. Grad-CAM 模型注意力觀察
