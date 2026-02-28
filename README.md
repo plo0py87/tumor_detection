@@ -1,6 +1,6 @@
 # Brain Tumor Detection & Latent Space Exploration
 
-本專案是一個機器學習的學習專案，主要紀錄了從基礎的影像分類到生成模型的潛在空間（Latent Space）探索過程與心得。
+本專案是一個機器學習的學習專案，主要紀錄了從基礎的影像分類到生成模型的 Latent Space 探索過程與心得。
 
 ## 1. CNN Binary Classifier 與模型搭建
 
@@ -9,7 +9,7 @@
 ![alt text](image/plot-60epoch.jpg)
 ## 2. Grad-CAM 模型注意力觀察
 
-為了確認我們的 CNN 模型是真的學到了腫瘤的特徵，而不是因為圖片的其他無關背景（如邊界、浮水印）而做出判斷，我們實作了 **Grad-CAM (Gradient-weighted Class Activation Mapping)** 技術。
+為了確認 CNN 模型是真的學到了腫瘤的特徵，而不是因為圖片的其他無關背景（如邊界、浮水印）而做出判斷，實作了 **Grad-CAM (Gradient-weighted Class Activation Mapping)** 技術。
 
 透過 Grad-CAM 生成的熱力圖（Saliency Map），我們可以清楚看到模型在進行「有腫瘤」的判斷時，注意力確實集中在腫瘤發生的位置上。
 
