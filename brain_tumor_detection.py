@@ -35,7 +35,7 @@ import cv2
 
 
 # Load the images directories
-path = "./Desktop/DataFlair/brain_tumor_dataset"
+path = "./brain_tumor_dataset"
 print(os.listdir(path))
 
 image_paths = list(paths.list_images(path))
@@ -98,7 +98,15 @@ print(labels[0])
 
 
 # Build the Image Data Generator
-train_generator = ImageDataGenerator(fill_mode= 'nearest', rotation_range= 15)
+train_generator = ImageDataGenerator(
+    rotation_range=20,
+    width_shift_range=0.1,
+    height_shift_range=0.1,
+    shear_range=0.1,
+    zoom_range=0.2,
+    horizontal_flip=True, # 大腦是對稱的，翻轉是合理的
+    fill_mode='nearest'
+)
 
 
 # In[9]:
@@ -144,7 +152,7 @@ model.summary()
 batch_size = 8
 train_steps = len(train_X) // batch_size
 validation_steps = len(test_X) // batch_size
-epochs = 10
+epochs = 60
 
 
 # In[14]:
@@ -203,11 +211,93 @@ plt.title("Training Loss and Accuracy on Brain Dataset")
 plt.xlabel("Epoch")
 plt.ylabel("Loss / Accuracy")
 plt.legend(loc= "lower left")
-plt.savefig("plot.jpg")
+plt.savefig("image/plot.jpg")
 
 
 # In[ ]:
 
+# ----------------- GRAD-CAM Visualization -----------------
+import tensorflow as tf
 
+def make_gradcam_heatmap(img_array, model, last_conv_layer_name, pred_index=None):
+    grad_model = tf.keras.models.Model(
+        [model.inputs], [model.get_layer(last_conv_layer_name).output, model.output]
+    )
 
+    with tf.GradientTape() as tape:
+        last_conv_layer_output, preds = grad_model(img_array)
+        if pred_index is None:
+            pred_index = tf.argmax(preds[0])
+        class_channel = preds[:, pred_index]
 
+    grads = tape.gradient(class_channel, last_conv_layer_output)
+    pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
+
+    last_conv_layer_output = last_conv_layer_output[0]
+    heatmap = last_conv_layer_output @ pooled_grads[..., tf.newaxis]
+    heatmap = tf.squeeze(heatmap)
+    heatmap = tf.maximum(heatmap, 0) / tf.math.reduce_max(heatmap)
+    return heatmap.numpy()
+
+def save_and_display_gradcam(img, heatmap, cam_path="image/saliency_map_result.jpg", alpha=0.4):
+    heatmap = np.uint8(255 * heatmap)
+    jet = plt.cm.get_cmap("jet")
+    jet_colors = jet(np.arange(256))[:, :3]
+    jet_heatmap = jet_colors[heatmap]
+    
+    jet_heatmap = tf.keras.utils.array_to_img(jet_heatmap)
+    jet_heatmap = jet_heatmap.resize((img.shape[1], img.shape[0]))
+    jet_heatmap = tf.keras.utils.img_to_array(jet_heatmap)
+    
+    superimposed_img = jet_heatmap * alpha + img * (1 - alpha)
+    superimposed_img = tf.keras.utils.array_to_img(superimposed_img)
+    superimposed_img.save(cam_path)
+    print(f"Saliency map saved to: {cam_path}")
+
+# Select 3 positive test images randomly from test_X if possible, aiming for a tumor case
+target_count = 3
+count = 0
+plt.figure(figsize=(15, 6))
+
+for i in range(len(actuals)):
+    # class 1 is usually 'yes' tumor if label_binarizer classes are sorted
+    if actuals[i] == 1 and predictions[i] == 1:
+        img_array = test_X[i:i+1]
+        pred = predictions[i]
+        actual = actuals[i]
+        
+        print(f"Generating Grad-CAM for Test Image {i} - Actual: {actual}, Predicted: {pred}")
+        heatmap = make_gradcam_heatmap(img_array, model, 'block5_conv3', pred_index=pred)
+        
+        # Get unnormalized image for visualization
+        orig_img = test_X[i] * 255.0
+        
+        heatmap_uint8 = np.uint8(255 * heatmap)
+        jet = plt.cm.get_cmap("jet")
+        jet_colors = jet(np.arange(256))[:, :3]
+        jet_heatmap = jet_colors[heatmap_uint8]
+        
+        jet_heatmap = tf.keras.utils.array_to_img(jet_heatmap)
+        jet_heatmap = jet_heatmap.resize((orig_img.shape[1], orig_img.shape[0]))
+        jet_heatmap = tf.keras.utils.img_to_array(jet_heatmap)
+        
+        superimposed_img = jet_heatmap * 0.4 + orig_img * 0.6
+        superimposed_img = tf.keras.utils.array_to_img(superimposed_img)
+        
+        plt.subplot(2, target_count, count + 1)
+        plt.imshow(tf.keras.utils.array_to_img(orig_img))
+        plt.title(f"Original {count+1}")
+        plt.axis('off')
+        
+        plt.subplot(2, target_count, count + target_count + 1)
+        plt.imshow(superimposed_img)
+        plt.title(f"Grad-CAM {count+1}")
+        plt.axis('off')
+        
+        count += 1
+        if count >= target_count:
+            break
+
+plt.tight_layout()
+plt.savefig("image/gradcam_results.jpg")
+print("Saliency maps saved to: image/gradcam_results.jpg")
