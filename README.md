@@ -19,7 +19,7 @@
 
 ## 3. Auto Encoder 與 KL Divergence 實驗
 
-接下來，本專案實作了變分自編碼器（Variational Autoencoder, VAE），並加入 **KL Divergence** 作為損失函數的一環。KL Divergence 能幫助我們把 Latent Space 高維度空間梳理得更平滑且具有結構性，讓生成的特徵可以被分開。
+接下來，因為我想試玩 auto encoder，本專案實作了變分自編碼器（Variational Autoencoder, VAE），並加入 **KL Divergence** 作為損失函數的一環。KL Divergence 能幫助我們把 Latent Space 高維度空間梳理得更平滑且具有結構性，讓生成的特徵可以被分開。
 
 在訓練好 Encoder 與 Decoder 之後，我們在 Decoder 後方接上訓練好的 Classifier（分類器）。透過**梯度上升（Gradient Ascent）**的方法，我們從一組隨機常態分佈的高維向量開始，找出能讓 Classifier 判定「這是腫瘤的機率最高」的 Latent Vector（潛在向量 `loss_z`），接著再把這個推擠到極限的向量丟回 Decoder 產生圖片，藉此觀察模型心目中「最純粹的腫瘤特徵」長什麼樣子：
 
